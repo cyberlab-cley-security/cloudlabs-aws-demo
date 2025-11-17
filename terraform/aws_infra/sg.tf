@@ -21,7 +21,7 @@ resource "aws_security_group" "ec2-bastion" {
     from_port                   = 27017
     to_port                     = 27017
     protocol                    = "tcp"
-    security_groups             = [module.eks.worker_security_group_id]
+    security_groups             = [module.eks.workers_security_group_id]
   }
 
   egress {
