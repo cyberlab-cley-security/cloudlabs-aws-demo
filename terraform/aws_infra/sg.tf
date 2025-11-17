@@ -17,11 +17,11 @@ resource "aws_security_group" "ec2-bastion" {
 
   # Ingress to MongoDB only from EKS worker nodes
   ingress {
-    description                 = "MongoDB access from EKS nodes"
-    from_port                   = 27017
-    to_port                     = 27017
-    protocol                    = "tcp"
-    security_groups = [module.eks.managed_node_groups["one"].resources[0].security_group_id] #to allow only connection from EKS node group to MongoDB
+    description       = "MongoDB access from EKS nodes"
+    from_port         = 27017
+    to_port           = 27017
+    protocol          = "tcp"
+    security_groups   = [data.aws_eks_node_group.eks_node_group_1.resources[0].security_group_id] #to allow only connection from EKS node group to MongoDB
   }
 
   egress {
