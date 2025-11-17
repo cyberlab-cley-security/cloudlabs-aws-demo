@@ -2,7 +2,7 @@
 
 Deploy EKS with Terraform
 
-[![Deploy Infrastructure](https://github.com/cyberlab-cley-security/terraform-aws-eks/actions/workflows/deploy_infrastructure.yml/badge.svg?branch=main)](https://github.com/cyberlab-cley-security/terraform-aws-eks/actions/workflows/deploy_infrastructure.yml)
+[![Deploy Infrastructure](https://github.com/cyberlab-cley-security/cloudlabs-aws-demo/actions/workflows/deploy_infrastructure.yml/badge.svg?branch=main)](https://github.com/cyberlab-cley-security/cloudlabs-aws-demo/actions/workflows/deploy_infrastructure.yml)
 
 
 
@@ -39,7 +39,7 @@ It is possible to use this code to quickly deploy a cloud native environment (K8
 #### Create a fork of the repository
 
 1. Login with your github account
-2. Open https://github.com/cyberlab-cley-security/terraform-aws-eks and click on Fork
+2. Open https://github.com/cyberlab-cley-security/cloudlabs-aws-demo and click on Fork
 
 
 
