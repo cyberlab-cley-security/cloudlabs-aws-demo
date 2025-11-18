@@ -1,4 +1,4 @@
-- name: Install and configure awscli, kubectl, create ns and deploy defender
+- name: Install and configure awscli, kubectl, create ns and deploy defender + ArgoCD
   hosts: "{{ target | default('nothing') }}"
   become: true
   vars:
@@ -8,7 +8,8 @@
     AWS_SECRET_ACCESS_KEY: "{{ AWS_SECRET_ACCESS_KEY }}"
     AWS_DEFAULT_REGION: "{{ AWS_DEFAULT_REGION }}"
     EKS_CLUSTER_NAME: "{{ EKS_CLUSTER_NAME }}"
-    PATH: "/opt/ansible-venv/bin:{{ ansible_env.PATH }}"  # Use virtualenv binaries first
+    PATH: "/opt/ansible-venv/bin:{{ ansible_env.PATH }}"
+
   tasks:
 
     - name: Redirect apt repos to old-releases (Ubuntu 23.10 Mantic)
@@ -87,17 +88,25 @@
         group: "{{ ansible_user }}"
         mode: '0600'
 
+    - name: Ensure .kube directory exists
+      ansible.builtin.file:
+        path: /home/{{ ansible_user }}/.kube
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0755"
+
     - name: Generate kubeconfig from AWS EKS
-      ansible.builtin.command:
-        cmd: >
-          aws eks update-kubeconfig
-          --name {{ EKS_CLUSTER_NAME }}
-          --region {{ AWS_DEFAULT_REGION }}
-          --kubeconfig /home/{{ ansible_user }}/.kube/config
+      ansible.builtin.command: >
+        aws eks update-kubeconfig
+        --name {{ EKS_CLUSTER_NAME }}
+        --region {{ AWS_DEFAULT_REGION }}
+        --kubeconfig /home/{{ ansible_user }}/.kube/config
+      args:
+        creates: "/home/{{ ansible_user }}/.kube/config"
       environment:
         HOME: "/home/{{ ansible_user }}"
       become_user: "{{ ansible_user }}"
-      creates: "/home/{{ ansible_user }}/.kube/config"
 
     - name: Ensure kubeconfig permissions
       ansible.builtin.file:
@@ -105,3 +114,45 @@
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
         mode: "0600"
+
+    - name: Create ArgoCD namespace
+      ansible.builtin.command:
+        cmd: kubectl create namespace argocd
+      args:
+        chdir: /home/{{ ansible_user }}
+      become_user: "{{ ansible_user }}"
+      register: argocd_ns
+      failed_when: argocd_ns.rc != 0 and "AlreadyExists" not in argocd_ns.stderr
+
+    - name: Install ArgoCD (official install.yaml)
+      ansible.builtin.command: >
+        kubectl apply -n argocd
+        -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+      become_user: "{{ ansible_user }}"
+
+    - name: Wait for ArgoCD server deployment to be available
+      ansible.builtin.command: >
+        kubectl wait --namespace argocd
+        --for=condition=available
+        --timeout=300s
+        deployment/argocd-server
+      become_user: "{{ ansible_user }}"
+
+    - name: Patch ArgoCD server service to LoadBalancer
+      ansible.builtin.command: >
+        kubectl patch svc argocd-server -n argocd
+        -p '{"spec": {"type": "LoadBalancer"}}'
+      become_user: "{{ ansible_user }}"
+
+    - name: Wait for ArgoCD LoadBalancer external hostname
+      ansible.builtin.command: >
+        sh -c 'kubectl get svc argocd-server -n argocd -o jsonpath="{.status.loadBalancer.ingress[0].hostname}"'
+      register: argocd_lb
+      retries: 20
+      delay: 10
+      until: argocd_lb.stdout != ""
+      become_user: "{{ ansible_user }}"
+
+    - name: Display ArgoCD URL
+      ansible.builtin.debug:
+        msg: "Argo CD is available at: https://{{ argocd_lb.stdout }}"
