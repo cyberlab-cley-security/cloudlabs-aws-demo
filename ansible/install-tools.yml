@@ -1,4 +1,4 @@
-- name: Install and configure awscli, kubectl, create ns and deploy defender + ArgoCD
+- name: Install and configure awscli, kubectl, create ns and deploy ArgoCD
   hosts: "{{ target | default('nothing') }}"
   become: true
   vars:
@@ -155,4 +155,9 @@
 
     - name: Display ArgoCD URL
       ansible.builtin.debug:
-        msg: "Argo CD is available at: https://{{ argocd_lb.stdout }}"
+        msg: |
+          Argo CD is available at: https://{{ argocd_lb.stdout }}
+
+          # Retrieve ArgoCD initial admin password:
+          kubectl -n argocd get secret argocd-initial-admin-secret \
+            -o jsonpath="{.data.password}" | base64 -d
