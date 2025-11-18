@@ -10,16 +10,17 @@
     EKS_CLUSTER_NAME: "{{ EKS_CLUSTER_NAME }}"
     PATH: "/opt/ansible-venv/bin:{{ ansible_env.PATH }}"  # Use virtualenv binaries first
   tasks:
+
     - name: Redirect apt repos to old-releases (Ubuntu 23.10 Mantic)
       ansible.builtin.replace:
         path: /etc/apt/sources.list
-        regexp: 'http://us-east-1.ec2.archive.ubuntu.com/ubuntu|http://security.ubuntu.com/ubuntu'
+        regexp: 'http://.*\.archive\.ubuntu\.com/ubuntu|http://security\.ubuntu\.com/ubuntu'
         replace: 'http://old-releases.ubuntu.com/ubuntu'
 
-    - name: Update Repo
-      ansible.builtin.command: sudo apt-get update
-      register: update_result
-      failed_when: update_result.rc != 0 and "'Hash Sum mismatch' not in update_result.stderr"
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
 
     - name: Install python3-pip and python3-venv
       ansible.builtin.apt:
@@ -27,7 +28,6 @@
           - python3-pip
           - python3-venv
         state: present
-        update_cache: yes
 
     - name: Install jq
       ansible.builtin.snap:
@@ -55,7 +55,7 @@
       ansible.builtin.command:
         cmd: /opt/ansible-venv/bin/pip install --upgrade pip
 
-    - name: Install pre-requisites pip3, kub, oc in virtualenv
+    - name: Install pre-requisites pip packages in virtualenv
       ansible.builtin.pip:
         name:
           - openshift
@@ -90,3 +90,5 @@
     - name: Set Kubeconfig for cluster
       ansible.builtin.command: 
         cmd: aws eks update-kubeconfig --name "{{ EKS_CLUSTER_NAME }}"
+        environment:
+          PATH: "/opt/ansible-venv/bin:{{ ansible_env.PATH }}"
