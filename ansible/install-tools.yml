@@ -86,3 +86,22 @@
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
         mode: '0600'
+
+    - name: Generate kubeconfig from AWS EKS
+      ansible.builtin.command:
+        cmd: >
+          aws eks update-kubeconfig
+          --name {{ EKS_CLUSTER_NAME }}
+          --region {{ AWS_DEFAULT_REGION }}
+          --kubeconfig /home/{{ ansible_user }}/.kube/config
+      environment:
+        HOME: "/home/{{ ansible_user }}"
+      become_user: "{{ ansible_user }}"
+      creates: "/home/{{ ansible_user }}/.kube/config"
+
+    - name: Ensure kubeconfig permissions
+      ansible.builtin.file:
+        path: /home/{{ ansible_user }}/.kube/config
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0600"
