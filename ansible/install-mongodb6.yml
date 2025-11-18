@@ -1,0 +1,123 @@
+- name: Deploy MongoDB on bastion
+  hosts: "{{ target | default('nothing') }}"
+  become: true
+  vars:
+    mongo_version: "6.0"
+    mongo_admin_user: "admin"
+    mongo_admin_pass: "AdminPass123!"
+    mongo_app_user: "appuser"
+    mongo_app_pass: "AppPass123!"
+    mongo_backup_user: "backup"
+    mongo_backup_pass: "BackupPass123!"
+    ansible_user: ubuntu
+    ansible_python_interpreter: /opt/ansible-venv/bin/python
+  tasks:
+    - name: Ensure virtualenv exists
+      ansible.builtin.command:
+        cmd: python3 -m venv /opt/ansible-venv
+        creates: /opt/ansible-venv
+
+    - name: Upgrade pip in virtualenv
+      ansible.builtin.command:
+        cmd: /opt/ansible-venv/bin/pip install --upgrade pip
+
+    - name: Install pymongo in virtualenv
+      ansible.builtin.pip:
+        name: pymongo
+        virtualenv: /opt/ansible-venv
+        state: present
+
+    - name: Import MongoDB public GPG key
+      ansible.builtin.apt_key:
+        url: https://www.mongodb.org/static/pgp/server-6.0.asc
+        state: present
+
+    - name: Add MongoDB repository (force Ubuntu 22.04 jammy)
+      ansible.builtin.apt_repository:
+        repo: "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/{{ mongo_version }} multiverse"
+        state: present
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Install MongoDB packages
+      ansible.builtin.apt:
+        name: mongodb-org
+        state: present
+
+    - name: Ensure MongoDB bindIp includes localhost + private IP
+      ansible.builtin.lineinfile:
+        path: /etc/mongod.conf
+        regexp: '^ *bindIp:'
+        line: "  bindIp: 127.0.0.1,{{ ansible_default_ipv4.address }}"
+      notify: Restart MongoDB
+
+    - name: Start and enable MongoDB service
+      ansible.builtin.systemd:
+        name: mongod
+        state: started
+        enabled: yes
+
+    - name: Wait for MongoDB to be available
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 27017
+        timeout: 60
+        state: started
+
+    - name: Check if MongoDB admin user exists
+      ansible.builtin.command: >
+        mongo admin --quiet --eval "db.getUser('{{ mongo_admin_user }}')"
+      register: admin_user_check
+      failed_when: false
+      changed_when: false
+
+    - name: Create MongoDB admin user if not exists
+      community.mongodb.mongodb_user:
+        login_host: "127.0.0.1"
+        database: admin
+        name: "{{ mongo_admin_user }}"
+        password: "{{ mongo_admin_pass }}"
+        roles:
+          - userAdminAnyDatabase
+        state: present
+      when: admin_user_check.stdout == 'null'
+
+    - name: Ensure MongoDB authentication is enabled
+      ansible.builtin.lineinfile:
+        path: /etc/mongod.conf
+        regexp: '^ *authorization:'
+        line: "  authorization: enabled"
+      notify: Restart MongoDB
+
+    - name: Create MongoDB application user
+      community.mongodb.mongodb_user:
+        login_host: "127.0.0.1"
+        login_user: "{{ mongo_admin_user }}"
+        login_password: "{{ mongo_admin_pass }}"
+        database: admin
+        name: "{{ mongo_app_user }}"
+        password: "{{ mongo_app_pass }}"
+        roles:
+          - readWriteAnyDatabase
+        state: present
+
+    - name: Create MongoDB backup user
+      community.mongodb.mongodb_user:
+        login_host: "127.0.0.1"
+        login_user: "{{ mongo_admin_user }}"
+        login_password: "{{ mongo_admin_pass }}"
+        database: admin
+        name: "{{ mongo_backup_user }}"
+        password: "{{ mongo_backup_pass }}"
+        roles:
+          - readAnyDatabase
+          - backup
+        state: present
+
+  handlers:
+    - name: Restart MongoDB
+      ansible.builtin.systemd:
+        name: mongod
+        state: restarted

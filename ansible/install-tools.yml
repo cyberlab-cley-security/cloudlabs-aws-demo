@@ -1,70 +1,92 @@
-- name: "Install and configure awscli, kubectl, create ns and deploy defender"
+- name: Install and configure awscli, kubectl, create ns and deploy defender
   hosts: "{{ target | default('nothing') }}"
+  become: true
+  vars:
+    ansible_user: ubuntu
   environment:
     AWS_ACCESS_KEY_ID: "{{ AWS_ACCESS_KEY_ID }}"
     AWS_SECRET_ACCESS_KEY: "{{ AWS_SECRET_ACCESS_KEY }}"
     AWS_DEFAULT_REGION: "{{ AWS_DEFAULT_REGION }}"
     EKS_CLUSTER_NAME: "{{ EKS_CLUSTER_NAME }}"
-  vars:
-    ansible_user: ubuntu
-  become: true
+    PATH: "/opt/ansible-venv/bin:{{ ansible_env.PATH }}"  # Use virtualenv binaries first
   tasks:
     - name: Redirect apt repos to old-releases (Ubuntu 23.10 Mantic)
       ansible.builtin.replace:
-      path: /etc/apt/sources.list
-      regexp: 'http://us-east-1.ec2.archive.ubuntu.com/ubuntu|http://security.ubuntu.com/ubuntu'
-      replace: 'http://old-releases.ubuntu.com/ubuntu'
+        path: /etc/apt/sources.list
+        regexp: 'http://us-east-1.ec2.archive.ubuntu.com/ubuntu|http://security.ubuntu.com/ubuntu'
+        replace: 'http://old-releases.ubuntu.com/ubuntu'
 
     - name: Update Repo
       ansible.builtin.command: sudo apt-get update
       register: update_result
       failed_when: update_result.rc != 0 and "'Hash Sum mismatch' not in update_result.stderr"
 
-    - name: Install python3-pip
-      ansible.builtin.command: sudo apt install python3-pip -y
+    - name: Install python3-pip and python3-venv
+      ansible.builtin.apt:
+        name:
+          - python3-pip
+          - python3-venv
+        state: present
+        update_cache: yes
 
     - name: Install jq
-      ansible.builtin.command: sudo snap install jq 
+      ansible.builtin.snap:
+        name: jq
+        state: present
 
     - name: Install aws-cli
-      ansible.builtin.command: sudo snap install aws-cli --classic
-  
+      ansible.builtin.snap:
+        name: aws-cli
+        state: present
+        classic: yes
+
     - name: Download kubectl v1.31.1
-      ansible.builtin.command: sudo curl -LO "https://dl.k8s.io/release/v1.31.1/bin/linux/amd64/kubectl" 
+      ansible.builtin.get_url:
+        url: "https://dl.k8s.io/release/v1.31.1/bin/linux/amd64/kubectl"
+        dest: /usr/local/bin/kubectl
+        mode: '0755'
 
-    - name: Install kubectl
-      ansible.builtin.command: sudo mv kubectl /usr/local/bin/kubectl
-    
-    - name: chmod kubectl
-      ansible.builtin.command: sudo chmod 0755 /usr/local/bin/kubectl
+    - name: Create Python virtualenv for Ansible tools
+      ansible.builtin.command:
+        cmd: python3 -m venv /opt/ansible-venv
+        creates: /opt/ansible-venv
 
-    - name: install pre-requisites pip3, kub, oc
-      pip:
+    - name: Upgrade pip in virtualenv
+      ansible.builtin.command:
+        cmd: /opt/ansible-venv/bin/pip install --upgrade pip
+
+    - name: Install pre-requisites pip3, kub, oc in virtualenv
+      ansible.builtin.pip:
         name:
           - openshift
           - pyyaml
-          - kubernetes 
+          - kubernetes
+        virtualenv: /opt/ansible-venv
 
     - name: Create AWS directory if it does not exist
       ansible.builtin.file:
-        path: .aws
+        path: /home/{{ ansible_user }}/.aws
         state: directory
         mode: '0755'
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
 
-    - name: Set AWS Creds
-      template:
+    - name: Set AWS Credentials
+      ansible.builtin.template:
         src: templates/credentials.j2
-        dest: .aws/credentials
+        dest: /home/{{ ansible_user }}/.aws/credentials
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0600'
 
     - name: Set AWS Config
-      template:
+      ansible.builtin.template:
         src: templates/config.j2
-        dest: .aws/config
+        dest: /home/{{ ansible_user }}/.aws/config
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0600'
 
-    - name: Set Kubeconfig for cluster 
+    - name: Set Kubeconfig for cluster
       ansible.builtin.command: 
         cmd: aws eks update-kubeconfig --name "{{ EKS_CLUSTER_NAME }}"
-
-
