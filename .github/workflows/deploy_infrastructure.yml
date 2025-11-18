@@ -1,9 +1,6 @@
 name: Deploy Infrastructure
 
 on:
-  # push:
-  #  branches:
-  #    - main
   workflow_dispatch:
     inputs:
       AWS_REGION:
@@ -26,7 +23,7 @@ on:
           - 5
         default: '1'
       WORKER_NODES_TYPE:
-        description: 'Worker nodes type in eks_cluster - https://docs.aws.amazon.com/ec2/latest/instancetypes/gp.html'
+        description: 'Worker nodes type in eks_cluster'
         required: true
         type: choice
         options:
@@ -47,18 +44,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # pin@v2
+        uses: actions/checkout@v2
 
-      - name: Setup tool - install Terraform
-        uses: hashicorp/setup-terraform@633666f66e0061ca3b725c73b2ec20cd13a8fdd1 # pin@v2
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.2
           terraform_wrapper: false
 
-      - name: Setup tool - install AWS cli
-        uses: unfor19/install-aws-cli-action@457b7980b125044247e455d87b9a26fc2299b787 # pin@v1
+      - name: Setup AWS CLI
+        uses: unfor19/install-aws-cli-action@v1
 
-      - name: Prerequisite - Github actor name control to convert to the expected format (underscore and uppercase removed and size limited to 10 chars)
+      - name: Prerequisite - Github actor name control
         id: github_name_control
         run: |
           ./github_actor_name_control.sh ${{ github.actor }} >> ACTOR
@@ -70,7 +67,7 @@ jobs:
         working-directory: ./scripts
         shell: bash
 
-      - name: Prerequisite - Check if exists or Create S3 Bucket for tfstate
+      - name: Prerequisite - Check or create S3 bucket for tfstate
         id: s3
         run: ./check_s3_bucket.sh ${{ github.event.inputs.NAME_PREFIX }} ${{ env.ACTOR_PREFIX }} ${{ github.event.inputs.AWS_REGION }}
         env:
@@ -81,75 +78,88 @@ jobs:
         working-directory: ./scripts
         shell: bash
 
-      - name: Init - Terraform Init
+      - name: Terraform Init
         id: init
         run: terraform init -backend-config="bucket=${{ github.event.inputs.NAME_PREFIX }}-${{ env.ACTOR_PREFIX }}-s3-tfstate" -backend-config="key=${{ github.event.inputs.NAME_PREFIX }}-infra.tfstate" -backend-config="region=${{ github.event.inputs.AWS_REGION }}"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ github.event.inputs.AWS_REGION }}
         working-directory: ./terraform/aws_infra
         shell: bash
 
-      - name: Validate - Terraform Validate
+      - name: Terraform Validate
         id: validate
         run: terraform validate
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ github.event.inputs.AWS_REGION }}
         working-directory: ./terraform/aws_infra
         shell: bash
 
-      - name: Deploy infra - Terraform Apply
+      # ----------  Checkov Terraform ----------
+      - name: Check Terraform code with Checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: ./terraform/aws_infra
+          output_format: 'github'
+          quiet: true
+        continue-on-error: true
+
+      - name: Terraform Apply
         id: apply
         run: |
-          terraform apply -var="region=${{ github.event.inputs.AWS_REGION }}" -var="name_prefix=${{ github.event.inputs.NAME_PREFIX }}-${{ env.ACTOR_PREFIX }}" -var="worker_nodes_desired_size=${{ github.event.inputs.WORKER_NODES_NUMBER }}" -var="worker_nodes_type=${{ github.event.inputs.WORKER_NODES_TYPE }}" -var="public_ssh_key=${{ github.event.inputs.PUBLIC_SSH_KEY }}" -auto-approve
+          terraform apply \
+            -var="region=${{ github.event.inputs.AWS_REGION }}" \
+            -var="name_prefix=${{ github.event.inputs.NAME_PREFIX }}-${{ env.ACTOR_PREFIX }}" \
+            -var="worker_nodes_desired_size=${{ github.event.inputs.WORKER_NODES_NUMBER }}" \
+            -var="worker_nodes_type=${{ github.event.inputs.WORKER_NODES_TYPE }}" \
+            -var="public_ssh_key=${{ github.event.inputs.PUBLIC_SSH_KEY }}" \
+            -auto-approve
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ github.event.inputs.AWS_REGION }}
         working-directory: ./terraform/aws_infra
         shell: bash
 
-      - name: set env from tf_output
+      - name: Set env from tf_output
         id: tf_output
         run: |
           echo "EKS_CLUSTER_NAME=$(terraform output cluster_name)" >> $GITHUB_ENV
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ github.event.inputs.AWS_REGION }}
         working-directory: ./terraform/aws_infra
         shell: bash
 
-      - name: Download ansible inventory and cluster name created during build phase
+      - name: Download ansible inventory and cluster name
         id: download_inventory
         run: |
           aws s3 cp s3://${{ github.event.inputs.NAME_PREFIX }}-${{ env.ACTOR_PREFIX }}-s3-tfstate/ansible_inventory.ini .
           aws s3 cp s3://${{ github.event.inputs.NAME_PREFIX }}-${{ env.ACTOR_PREFIX }}-s3-tfstate/cluster_name.txt .
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ github.event.inputs.AWS_REGION }}
         working-directory: ./ansible
         shell: bash
 
-      - name: Install Tools on ec2-bastion - Run Ansible playbook
-        uses: dawidd6/action-ansible-playbook@5d970176ea4bfd99a3f5004d48e293fe0994eda1 # pin@v2
+      # ----------  ansible-lint ----------
+      - name: Lint Ansible playbooks with ansible-lint
+        run: |
+          pip install ansible-lint
+          ansible-lint ./ansible/*.yml || true
+        shell: bash
+
+      - name: Install Tools on ec2-bastion
+        uses: dawidd6/action-ansible-playbook@v2
         with:
-          # Required, playbook filepath
           playbook: install-tools.yml
-          # Directory where playbooks live
           directory: ./ansible
-          # SSH private key to connect to host
           key: ${{secrets.SSH_PRIVATE_KEY}}
-          # Optional, additional flags to pass to ansible-playbook
           options: |
             --inventory ansible_inventory.ini
             --extra-vars target="ec2-bastion-public"
@@ -158,30 +168,22 @@ jobs:
             --extra-vars AWS_DEFAULT_REGION=${{ github.event.inputs.AWS_REGION }}
             --extra-vars EKS_CLUSTER_NAME=${{ env.EKS_CLUSTER_NAME }}
 
-      - name: Install MongoDB on ec2-bastion - Run Ansible playbook
-        uses: dawidd6/action-ansible-playbook@5d970176ea4bfd99a3f5004d48e293fe0994eda1 # pin@v2
+      - name: Install MongoDB on ec2-bastion
+        uses: dawidd6/action-ansible-playbook@v2
         with:
-          # Required, playbook filepath
           playbook: install-mongodb6.yml
-          # Directory where playbooks live
           directory: ./ansible
-          # SSH private key to connect to host
           key: ${{secrets.SSH_PRIVATE_KEY}}
-          # Optional, additional flags to pass to ansible-playbook
           options: |
             --inventory ansible_inventory.ini
             --extra-vars target="ec2-bastion-public"
 
-      - name: Create Cron Backup MongoDB - Run Ansible playbook
-        uses: dawidd6/action-ansible-playbook@5d970176ea4bfd99a3f5004d48e293fe0994eda1
+      - name: Create Cron Backup MongoDB
+        uses: dawidd6/action-ansible-playbook@v2
         with:
-          # Required, playbook filepath
           playbook: mongodb-backup.yml
-          # Directory where playbooks live
           directory: ./ansible
-          # SSH private key to connect to host
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # Optional, additional flags to pass to ansible-playbook
+          key: ${{secrets.SSH_PRIVATE_KEY}}
           options: |
             --inventory ansible_inventory.ini
             --extra-vars target="ec2-bastion-public"
