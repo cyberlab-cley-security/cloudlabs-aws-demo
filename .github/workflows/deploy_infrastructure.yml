@@ -22,7 +22,7 @@ on:
       PUBLIC_SSH_KEY:
         description: Public ssh key for EC2 bastion
         required: true
-        default: 'ssh-ed25519 AAAAC3Nza...'
+        default: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGvpeb4rpaWjWK9QDdn/Nv65PM+XAT+0XIgbVEnzo45f cley@MacBook-Air-de-Christopher.local'
 
 env:
   TF_DIR: ./terraform/aws_infra
