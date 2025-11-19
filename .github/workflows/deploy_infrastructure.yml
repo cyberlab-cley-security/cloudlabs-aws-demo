@@ -95,6 +95,7 @@ jobs:
       # ------------- Actor control ----------------
       - name: Github actor name control
         id: github_name_control
+        
         run: |
           ACTOR_PREFIX=$(./scripts/github_actor_name_control.sh ${{ github.actor }})
           echo "actor_prefix=$ACTOR_PREFIX" >> $GITHUB_OUTPUT
@@ -212,8 +213,12 @@ jobs:
       ACTOR_PREFIX: ${{ needs.build-iac.outputs.ACTOR_PREFIX }}
     steps:
       - uses: actions/checkout@v2
+      - name: Set ACTOR_PREFIX
+        run: |
+          echo "ACTOR_PREFIX='$ACTOR_PREFIX'"
+          echo "Bucket S3: ${{ github.event.inputs.NAME_PREFIX }}-$ACTOR_PREFIX-s3-tfstate"
       - name: Download inventory
-        run: aws s3 cp s3://${{ github.event.inputs.NAME_PREFIX }}-${{ env.ACTOR_PREFIX }}-s3-tfstate/ansible_inventory.ini .
+        run: aws s3 cp s3://${{ github.event.inputs.NAME_PREFIX }}-$ACTOR_PREFIX-s3-tfstate/ansible_inventory.ini .
         working-directory: ${{ env.ANSIBLE_DIR }}
       - name: Install Tools
         uses: dawidd6/action-ansible-playbook@v2
@@ -237,8 +242,12 @@ jobs:
       ACTOR_PREFIX: ${{ needs.build-iac.outputs.ACTOR_PREFIX }}
     steps:
       - uses: actions/checkout@v2
+      - name: Set ACTOR_PREFIX
+        run: |
+          echo "ACTOR_PREFIX='$ACTOR_PREFIX'"
+          echo "Bucket S3: ${{ github.event.inputs.NAME_PREFIX }}-$ACTOR_PREFIX-s3-tfstate"
       - name: Download inventory
-        run: aws s3 cp s3://${{ github.event.inputs.NAME_PREFIX }}-${{ env.ACTOR_PREFIX }}-s3-tfstate/ansible_inventory.ini .
+        run: aws s3 cp s3://${{ github.event.inputs.NAME_PREFIX }}-$ACTOR_PREFIX-s3-tfstate/ansible_inventory.ini .
         working-directory: ${{ env.ANSIBLE_DIR }}
       - uses: dawidd6/action-ansible-playbook@v2
         with:
@@ -261,8 +270,12 @@ jobs:
       ACTOR_PREFIX: ${{ needs.build-iac.outputs.ACTOR_PREFIX }}
     steps:
       - uses: actions/checkout@v2
+      - name: Set ACTOR_PREFIX
+        run: |
+          echo "ACTOR_PREFIX='$ACTOR_PREFIX'"
+          echo "Bucket S3: ${{ github.event.inputs.NAME_PREFIX }}-$ACTOR_PREFIX-s3-tfstate"
       - name: Download inventory
-        run: aws s3 cp s3://${{ github.event.inputs.NAME_PREFIX }}-${{ env.ACTOR_PREFIX }}-s3-tfstate/ansible_inventory.ini .
+        run: aws s3 cp s3://${{ github.event.inputs.NAME_PREFIX }}-$ACTOR_PREFIX-s3-tfstate/ansible_inventory.ini .
         working-directory: ${{ env.ANSIBLE_DIR }}
       - uses: dawidd6/action-ansible-playbook@v2
         with:
@@ -273,4 +286,4 @@ jobs:
             --inventory ansible_inventory.ini
             --extra-vars target="ec2-bastion-public"
             --extra-vars mongo_backup_user="backup"
-            --extra-vars s3_bucket="${{ github.event.inputs.NAME_PREFIX }}-${{ env.ACTOR_PREFIX }}-s3-tfstate"
+            --extra-vars s3_bucket="${{ github.event.inputs.NAME_PREFIX }}-$ACTOR_PREFIX-s3-tfstate"
