@@ -79,10 +79,10 @@ jobs:
     outputs:
       cluster_name: ${{ steps.output_cluster.outputs.cluster_name }}
       cluster_endpoint: ${{ steps.output_cluster.outputs.cluster_endpoint }}
-      cluster_security_group_id: ${{ steps.output_cluster.outputs.cluster_security_group_id }}
       ec2instance_dns: ${{ steps.output_cluster.outputs.ec2instance_dns }}
       ec2instance_ip: ${{ steps.output_cluster.outputs.ec2instance_ip }}
       ecr_registry_url: ${{ steps.output_cluster.outputs.ecr_registry_url }}
+      vpc_id: ${{ steps.output_cluster.outputs.vpc_id }}
       region: ${{ steps.output_cluster.outputs.region }}
     steps:
       - uses: actions/checkout@v2
@@ -141,10 +141,10 @@ jobs:
         run: |
           echo "cluster_name=$(terraform output -raw cluster_name)" >> $GITHUB_OUTPUT
           echo "cluster_endpoint=$(terraform output -raw cluster_endpoint)" >> $GITHUB_OUTPUT
-          echo "cluster_security_group_id=$(terraform output -raw cluster_security_group_id)" >> $GITHUB_OUTPUT
           echo "ec2instance_dns=$(terraform output -raw ec2instance_dns)" >> $GITHUB_OUTPUT
           echo "ec2instance_ip=$(terraform output -raw ec2instance_ip)" >> $GITHUB_OUTPUT
           echo "ecr_registry_url=$(terraform output -raw ecr_registry_url)" >> $GITHUB_OUTPUT
+          echo "vpc_id=$(terraform output -raw vpc_id)" >> $GITHUB_OUTPUT
           echo "region=${{ github.event.inputs.AWS_REGION }}" >> $GITHUB_OUTPUT
 
   # -------------------- JOB 4: Display Outputs --------------------
@@ -162,9 +162,9 @@ jobs:
           echo "🚀 AWS Infra Deployed"
           echo "======================="
           echo "🔹 Region:                    ${{ needs.build-iac.outputs.region }}"
+          echo "🔹 VPC ID:                    ${{ needs.build-iac.outputs.vpc_id }}"
           echo "🔹 EKS Cluster Name:          ${{ needs.build-iac.outputs.cluster_name }}"
           echo "🔹 EKS Endpoint:              ${{ needs.build-iac.outputs.cluster_endpoint }}"
-          echo "🔹 Cluster Security Group ID: ${{ needs.build-iac.outputs.cluster_security_group_id }}"
           echo "🔹 EC2 Bastion Public DNS:    ${{ needs.build-iac.outputs.ec2instance_dns }}"
           echo "🔹 EC2 Bastion Public IP:     ${{ needs.build-iac.outputs.ec2instance_ip }}"
           echo "🔹 ECR Registry URL:          ${{ needs.build-iac.outputs.ecr_registry_url }}"
