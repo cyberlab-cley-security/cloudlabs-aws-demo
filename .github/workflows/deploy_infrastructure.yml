@@ -34,6 +34,10 @@ jobs:
   validate-iac:
     name: "Job 1: Validate Infra - Terraform"
     runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ github.event.inputs.AWS_REGION }}
     steps:
       - uses: actions/checkout@v2
       - uses: hashicorp/setup-terraform@v2
@@ -49,6 +53,10 @@ jobs:
     name: "Job 2: Security Controls Infra - Checkov"
     runs-on: ubuntu-latest
     needs: validate-iac
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ github.event.inputs.AWS_REGION }}
     steps:
       - uses: actions/checkout@v2
       - name: Check Terraform code with Checkov
@@ -64,6 +72,10 @@ jobs:
     name: "Job 3: Build Infra - Terraform Apply"
     runs-on: ubuntu-latest
     needs: security-iac
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ github.event.inputs.AWS_REGION }}
     outputs:
       cluster_name: ${{ steps.output_cluster.outputs.cluster_name }}
       cluster_endpoint: ${{ steps.output_cluster.outputs.cluster_endpoint }}
@@ -102,6 +114,10 @@ jobs:
             -backend-config="key=infra.tfstate" \
             -backend-config="region=${{ github.event.inputs.AWS_REGION }}"
         working-directory: ${{ env.TF_DIR }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ github.event.inputs.AWS_REGION }}
 
       # ------------- Terraform Apply ----------------
       - name: Terraform Apply
@@ -114,6 +130,10 @@ jobs:
             -var="public_ssh_key=${{ github.event.inputs.PUBLIC_SSH_KEY }}" \
             -auto-approve
         working-directory: ${{ env.TF_DIR }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ github.event.inputs.AWS_REGION }}
 
       # ------------- Extract Terraform Outputs ----------------
       - name: Extract Terraform Outputs
@@ -132,6 +152,8 @@ jobs:
     name: "Job 4: Deployed Infra - Display Output"
     runs-on: ubuntu-latest
     needs: build-iac
+    env:
+      AWS_REGION: ${{ github.event.inputs.AWS_REGION }}
     steps:
       - uses: actions/checkout@v2
       - name: Display All Terraform Outputs
@@ -153,6 +175,10 @@ jobs:
     name: "Job 5: Automation Security Controls - Ansible"
     runs-on: ubuntu-latest
     needs: build-iac
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ github.event.inputs.AWS_REGION }}
     steps:
       - uses: actions/checkout@v2
       - run: pip install ansible ansible-lint
@@ -164,6 +190,10 @@ jobs:
     name: "Job 6: Automation Deploy Tools - Ansible"
     runs-on: ubuntu-latest
     needs: ansible-security
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ github.event.inputs.AWS_REGION }}
     steps:
       - uses: actions/checkout@v2
       - name: Download inventory
@@ -184,6 +214,10 @@ jobs:
     name: "Job 7: Automation Install MongoDB - Ansible"
     runs-on: ubuntu-latest
     needs: tools-deploy
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ github.event.inputs.AWS_REGION }}
     steps:
       - uses: actions/checkout@v2
       - name: Download inventory
@@ -203,6 +237,10 @@ jobs:
     name: "Job 8: Automation - Configure Backup - Ansible"
     runs-on: ubuntu-latest
     needs: install-mongo
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ github.event.inputs.AWS_REGION }}
     steps:
       - uses: actions/checkout@v2
       - name: Download inventory
