@@ -103,7 +103,7 @@ jobs:
         uses: bridgecrewio/checkov-action@master
         with:
           directory: ./terraform/aws_infra
-          output_format: 'github'
+          output_format: 'github_failed_only'  
           quiet: true
         continue-on-error: true
 
