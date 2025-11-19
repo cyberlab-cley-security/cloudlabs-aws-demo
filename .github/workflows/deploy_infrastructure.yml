@@ -145,18 +145,24 @@ jobs:
         run: |
           cd ${{ env.TF_DIR }}
 
-          # Capture outputs
-          cluster_name=$(terraform output -raw cluster_name | tr -d '\r' || echo "")
-          cluster_endpoint=$(terraform output -raw cluster_endpoint | tr -d '\r' || echo "")
-          ec2instance_dns=$(terraform output -raw ec2instance_dns | tr -d '\r' || echo "")
-          ec2instance_ip=$(terraform output -raw ec2instance_ip | tr -d '\r' || echo "")
-          ecr_registry_url=$(terraform output -raw ecr_registry_url | tr -d '\r' || echo "")
-          vpc_id=$(terraform output -raw vpc_id | tr -d '\r' || echo "")
+          # Get outputs
+          output_json=$(terraform output -json)
+          cluster_name=$(echo "$output_json" | jq -r '.cluster_name.value')
+          cluster_endpoint=$(echo "$output_json" | jq -r '.cluster_endpoint.value')
+          ec2instance_dns=$(echo "$output_json" | jq -r '.ec2instance_dns.value')
+          ec2instance_ip=$(echo "$output_json" | jq -r '.ec2instance_ip.value')
+          ecr_registry_url=$(echo "$output_json" | jq -r '.ecr_registry_url.value')
+          vpc_id=$(echo "$output_json" | jq -r '.vpc_id.value')
           region="${AWS_DEFAULT_REGION}"
 
           # debug
           echo "cluster_name=${cluster_name}"
           echo "EKS endpoint=${cluster_endpoint}"
+          echo "ec2instance_dns=$ec2instance_dns"
+          echo "ec2instance_ip=$ec2instance_ip"
+          echo "ecr_registry_url=$ecr_registry_url"
+          echo "vpc_id=$vpc_id"
+          echo "region=$region"
 
           # Export for GitHub Actions
           echo "cluster_name=$cluster_name" >> $GITHUB_OUTPUT
