@@ -84,6 +84,8 @@ jobs:
       ecr_registry_url: ${{ steps.output_cluster.outputs.ecr_registry_url }}
       vpc_id: ${{ steps.output_cluster.outputs.vpc_id }}
       region: ${{ steps.output_cluster.outputs.region }}
+      ACTOR_PREFIX: ${{ steps.github_name_control.outputs.actor_prefix }}
+
     steps:
       - uses: actions/checkout@v2
       - uses: hashicorp/setup-terraform@v2
@@ -95,6 +97,7 @@ jobs:
         id: github_name_control
         run: |
           ACTOR_PREFIX=$(./scripts/github_actor_name_control.sh ${{ github.actor }})
+          echo "actor_prefix=$ACTOR_PREFIX" >> $GITHUB_OUTPUT
           echo "ACTOR_PREFIX=$ACTOR_PREFIX" >> $GITHUB_ENV
 
       # ------------- Check or create S3 bucket ---------------
@@ -139,14 +142,15 @@ jobs:
       - name: Extract Terraform Outputs
         id: output_cluster
         run: |
+          cd ${{ env.TF_DIR }}
           terraform output -raw cluster_name
-#          echo "cluster_name=$(terraform output -raw cluster_name)" >> $GITHUB_OUTPUT
-#          echo "cluster_endpoint=$(terraform output -raw cluster_endpoint)" >> $GITHUB_OUTPUT
-#          echo "ec2instance_dns=$(terraform output -raw ec2instance_dns)" >> $GITHUB_OUTPUT
-#          echo "ec2instance_ip=$(terraform output -raw ec2instance_ip)" >> $GITHUB_OUTPUT
-#          echo "ecr_registry_url=$(terraform output -raw ecr_registry_url)" >> $GITHUB_OUTPUT
-#          echo "vpc_id=$(terraform output -raw vpc_id)" >> $GITHUB_OUTPUT
-#          echo "region=${{ github.event.inputs.AWS_REGION }}" >> $GITHUB_OUTPUT
+          echo "cluster_name=$(terraform output -raw cluster_name)" >> $GITHUB_OUTPUT
+          echo "cluster_endpoint=$(terraform output -raw cluster_endpoint)" >> $GITHUB_OUTPUT
+          echo "ec2instance_dns=$(terraform output -raw ec2instance_dns)" >> $GITHUB_OUTPUT
+          echo "ec2instance_ip=$(terraform output -raw ec2instance_ip)" >> $GITHUB_OUTPUT
+          echo "ecr_registry_url=$(terraform output -raw ecr_registry_url)" >> $GITHUB_OUTPUT
+          echo "vpc_id=$(terraform output -raw vpc_id)" >> $GITHUB_OUTPUT
+          echo "region=${{ github.event.inputs.AWS_REGION }}" >> $GITHUB_OUTPUT
 
   # -------------------- JOB 4: Display Outputs --------------------
   display-infra:
@@ -195,6 +199,7 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: ${{ github.event.inputs.AWS_REGION }}
+      ACTOR_PREFIX: ${{ needs.build-iac.outputs.ACTOR_PREFIX }}
     steps:
       - uses: actions/checkout@v2
       - name: Download inventory
@@ -219,6 +224,7 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: ${{ github.event.inputs.AWS_REGION }}
+      ACTOR_PREFIX: ${{ needs.build-iac.outputs.ACTOR_PREFIX }}
     steps:
       - uses: actions/checkout@v2
       - name: Download inventory
@@ -242,6 +248,7 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: ${{ github.event.inputs.AWS_REGION }}
+      ACTOR_PREFIX: ${{ needs.build-iac.outputs.ACTOR_PREFIX }}
     steps:
       - uses: actions/checkout@v2
       - name: Download inventory
