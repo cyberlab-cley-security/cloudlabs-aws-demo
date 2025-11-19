@@ -147,22 +147,26 @@ jobs:
 
           # Use the standard Terraform binary
           TERRAFORM_BIN=$(which terraform)
+          $TERRAFORM_BIN output -json > tf_output.json
           
           # Capture Terraform output JSON cleanly
-          output_json=$($TERRAFORM_BIN output -json 2>/dev/null)
+          if [ ! -s tf_output.json ]; then
+            echo "ERROR: Terraform output JSON is empty!"
+            exit 1
+          fi
 
           # Debug: check JSON
           echo "Terraform output JSON:"
-          echo "$output_json"
-          
+          cat tf_output.json
+
           # Extract individual outputs using jq
-          cluster_name=$(echo "$output_json" | jq -r '.cluster_name.value // empty')
-          cluster_endpoint=$(echo "$output_json" | jq -r '.cluster_endpoint.value // empty')
-          ec2instance_dns=$(echo "$output_json" | jq -r '.ec2instance_dns.value // empty')
-          ec2instance_ip=$(echo "$output_json" | jq -r '.ec2instance_ip.value // empty')
-          ecr_registry_url=$(echo "$output_json" | jq -r '.ecr_registry_url.value // empty')
-          vpc_id=$(echo "$output_json" | jq -r '.vpc_id.value // empty')
-          region="${AWS_DEFAULT_REGION}"
+          cluster_name=$(jq -r '.cluster_name.value' tf_output.json)
+          cluster_endpoint=$(jq -r '.cluster_endpoint.value' tf_output.json)
+          ec2instance_dns=$(jq -r '.ec2instance_dns.value' tf_output.json)
+          ec2instance_ip=$(jq -r '.ec2instance_ip.value' tf_output.json)
+          ecr_registry_url=$(jq -r '.ecr_registry_url.value' tf_output.json)
+          vpc_id=$(jq -r '.vpc_id.value' tf_output.json)
+          region=$(jq -r '.region.value' tf_output.json || echo "${AWS_DEFAULT_REGION}")
 
           # debug
           echo "cluster_name=$cluster_name"
