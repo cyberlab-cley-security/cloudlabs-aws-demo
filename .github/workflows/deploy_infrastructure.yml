@@ -293,6 +293,13 @@ jobs:
             --extra-vars AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
             --extra-vars AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
             --extra-vars AWS_DEFAULT_REGION=${{ github.event.inputs.AWS_REGION }}
+            --extra-vars MONGO_ADMIN_USER="${{ secrets.MONGO_ADMIN_USER }}"
+            --extra-vars MONGO_ADMIN_PASS="${{ secrets.MONGO_ADMIN_PASS }}"
+            --extra-vars MONGO_APP_USER="${{ secrets.MONGO_APP_USER }}"
+            --extra-vars MONGO_APP_PASS="${{ secrets.MONGO_APP_PASS }}"
+            --extra-vars MONGO_BACKUP_USER="${{ secrets.MONGO_BACKUP_USER }}"
+            --extra-vars MONGO_BACKUP_PASS="${{ secrets.MONGO_BACKUP_PASS }}"
+            --extra-vars MONGO_APP_DB="${{ secrets.MONGO_APP_DB }}"
 
   # -------------------- JOB 8: MongoDB Backup --------------------
   backup-mongo:
@@ -321,7 +328,8 @@ jobs:
           options: |
             --inventory ansible_inventory.ini
             --extra-vars target="ec2-bastion-public"
-            --extra-vars mongo_backup_user="backup"
+            --extra-vars MONGO_BACKUP_USER="${{ secrets.MONGO_BACKUP_USER }}"
+            --extra-vars MONGO_BACKUP_PASS="${{ secrets.MONGO_BACKUP_PASS }}"
             --extra-vars s3_bucket="${{ github.event.inputs.NAME_PREFIX }}-$ACTOR_PREFIX-s3-tfstate"
             --extra-vars AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
             --extra-vars AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}

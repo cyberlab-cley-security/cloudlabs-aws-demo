@@ -3,13 +3,13 @@
   become: true
   vars:
     mongo_version: "6.0"
-    mongo_admin_user: "admin"
-    mongo_admin_pass: "AdminPass123!"
-    mongo_app_user: "appuser"
-    mongo_app_pass: "AppPass123!"
-    mongo_backup_user: "backup"
-    mongo_backup_pass: "BackupPass123!"
-    mongo_app_db: "cloudapps-app-db"
+    mongo_admin_user: "{{ MONGO_ADMIN_USER }}"
+    mongo_admin_pass: "{{ MONGO_ADMIN_PASS }}"
+    mongo_app_user: "{{ MONGO_APP_USER }}"
+    mongo_app_pass: "{{ MONGO_APP_PASS }}"
+    mongo_backup_user: "{{ MONGO_BACKUP_USER }}"
+    mongo_backup_pass: "{{ MONGO_BACKUP_PASS }}"
+    mongo_app_db: "{{ MONGO_APP_DB }}"
     ansible_user: ubuntu
     ansible_python_interpreter: /opt/ansible-venv/bin/python
 
@@ -28,11 +28,6 @@
         name: pymongo
         virtualenv: /opt/ansible-venv
         state: present
-
-    - name: Install mongodb collection
-      ansible.builtin.command: >
-        /opt/ansible-venv/bin/ansible-galaxy collection install community.mongodb
-      changed_when: false
 
   tasks:
     - name: Import MongoDB public GPG key
@@ -102,7 +97,7 @@
             authorization: enabled
       notify: Restart MongoDB
 
-    # --- Application user ---
+    # --- Create MongoBG Application user ---
     - name: Create MongoDB application user in {{ mongo_app_db }}
       community.mongodb.mongodb_user:
         login_host: "127.0.0.1"
@@ -115,7 +110,7 @@
           - readWrite
         state: present
 
-    # --- Backup user ---
+    # --- Create MongoBG Backup user ---
     - name: Create MongoDB backup user
       community.mongodb.mongodb_user:
         login_host: "127.0.0.1"

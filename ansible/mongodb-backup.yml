@@ -5,8 +5,8 @@
     ansible_user: ubuntu
     s3_bucket: "{{ s3_bucket }}"
     backup_path: "/var/backups/mongodb"
-    backup_user: "{{ mongo_backup_user }}"
-    mongo_backup_pass: "BackupPass123!"
+    mongo_backup_user: "{{ MONGO_BACKUP_USER }}"
+    mongo_backup_pass: "{{ MONGO_BACKUP_PASS }}"
   tasks:
     - name: Install AWS CLI
       apt:
