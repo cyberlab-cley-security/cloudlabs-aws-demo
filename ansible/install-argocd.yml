@@ -71,6 +71,16 @@
           ---
           Argo CD is now ready to use 🚀
           EOF
+          
+    # ---------------- Install ArgoCD CLI ----------------
+    - name: Install ArgoCD CLI
+      ansible.builtin.shell: |
+        curl -sSL -o /tmp/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+        chmod +x /tmp/argocd
+        mv /tmp/argocd /usr/local/bin/argocd
+      become: true
+      become_user: root
+
     # ---------------- Retrieve ArgoCD admin password ----------------
     - name: Retrieve ArgoCD initial admin password
       ansible.builtin.command: >
