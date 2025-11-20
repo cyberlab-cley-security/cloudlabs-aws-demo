@@ -285,10 +285,10 @@ jobs:
       - name: Download inventory
         run: aws s3 cp s3://${{ github.event.inputs.NAME_PREFIX }}-$ACTOR_PREFIX-s3-tfstate/ansible_inventory.ini .
         working-directory: ${{ env.ANSIBLE_DIR }}
-      - name: Install Tools
+      - name: Install ArgoCD
         uses: dawidd6/action-ansible-playbook@v2
         with:
-          playbook: install-tools.yml
+          playbook: install-argocd.yml
           directory: ${{ env.ANSIBLE_DIR }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           options: |
