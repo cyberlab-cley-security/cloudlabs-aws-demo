@@ -53,6 +53,14 @@
       until: argocd_lb.stdout != ""
       become_user: "{{ ansible_user }}"
 
+    - name: Wait for ArgoCD LoadBalancer to be reachable
+      ansible.builtin.wait_for:
+        host: "{{ argocd_lb.stdout }}"
+        port: 443
+        timeout: 300
+        state: started
+      become_user: "{{ ansible_user }}"
+
     - name: Display ArgoCD URL
       ansible.builtin.debug:
         msg: |
@@ -71,7 +79,7 @@
           ---
           Argo CD is now ready to use 🚀
           EOF
-          
+
     # ---------------- Install ArgoCD CLI ----------------
     - name: Install ArgoCD CLI
       ansible.builtin.shell: |
