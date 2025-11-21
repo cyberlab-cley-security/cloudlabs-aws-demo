@@ -180,9 +180,9 @@ jobs:
           echo "region=$region" >> $GITHUB_OUTPUT
 
 
-  # -------------------- JOB 4: Display Outputs --------------------
+  # -------------------- JOB 4b: Display Outputs --------------------
   display-infra:
-    name: "Job 4: Deployed Infra - Display Output"
+    name: "Job 4b: Deployed Infra - Display Output"
     runs-on: ubuntu-latest
     needs: build-iac
     env:
@@ -212,9 +212,9 @@ jobs:
           echo "🔹 ECR Registry URL:          $ECR_URL"
           echo "======================="
 
-  # -------------------- JOB 5: Ansible Security Controls --------------------
+  # -------------------- JOB 4a: Ansible Security Controls --------------------
   ansible-security:
-    name: "Job 5: Automation Security Controls - Ansible"
+    name: "Job 4a: Automation Security Controls - Ansible"
     runs-on: ubuntu-latest
     needs: build-iac
     env:
@@ -227,9 +227,9 @@ jobs:
       - name: Lint Ansible
         run: ansible-lint ${{ env.ANSIBLE_DIR }}/*.yml || true
 
-  # -------------------- JOB 6: Install Tools --------------------
+  # -------------------- JOB 5: Install Tools --------------------
   tools-deploy:
-    name: "Job 6: Automation Deploy Tools - Ansible"
+    name: "Job 5: Automation Deploy Tools - Ansible"
     runs-on: ubuntu-latest
     needs: [ansible-security, build-iac]
     env:
@@ -263,9 +263,9 @@ jobs:
             --extra-vars AWS_DEFAULT_REGION=${{ github.event.inputs.AWS_REGION }}
             --extra-vars EKS_CLUSTER_NAME=${{ needs.build-iac.outputs.cluster_name }}
 
-  # -------------------- JOB 7: Install ArgoCD --------------------
+  # -------------------- JOB 6b: Install ArgoCD --------------------
   install-argocd:
-    name: "Job 7: Automation Install ArgoCD - Ansible"
+    name: "Job 6b: Automation Install ArgoCD - Ansible"
     runs-on: ubuntu-latest
     needs: [tools-deploy, build-iac]
     env:
@@ -301,9 +301,9 @@ jobs:
             --extra-vars github_username="chrisley75"
             --extra-vars github_token=${{ secrets.PERSONAL_GITHUB_TOKEN }}
 
-  # -------------------- JOB 8: Install MongoDB --------------------
+  # -------------------- JOB 6a: Install MongoDB --------------------
   install-mongo:
-    name: "Job 8: Automation Install MongoDB - Ansible"
+    name: "Job 6a: Automation Install MongoDB - Ansible"
     runs-on: ubuntu-latest
     needs: [tools-deploy, build-iac]
     env:
@@ -339,9 +339,9 @@ jobs:
             --extra-vars MONGO_BACKUP_PASS="${{ secrets.MONGO_BACKUP_PASS }}"
             --extra-vars MONGO_APP_DB="${{ secrets.MONGO_APP_DB }}"
 
-  # -------------------- JOB 9: MongoDB Backup --------------------
+  # -------------------- JOB 7a: MongoDB Backup --------------------
   backup-mongo:
-    name: "Job 9: Automation - Configure Backup - Ansible"
+    name: "Job 7a: Automation - Configure Backup - Ansible"
     runs-on: ubuntu-latest
     needs: [install-mongo, build-iac]
     env:
