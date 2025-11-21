@@ -331,11 +331,12 @@ jobs:
           curl -X POST \
             -H "Accept: application/vnd.github.v3+json" \
             -H "Authorization: token ${{ secrets.PERSONAL_GITHUB_TOKEN }}" \
-            https://api.github.com/repos/cyberlab-cley-security/2-code-webapp-demo/actions/workflows/build_image.ym/dispatches \
+            https://api.github.com/repos/cyberlab-cley-security/2-code-webapp-demo/dispatches \
             -d '{
-              "ref": "automation_build",
-              "inputs": {
-                "image_path": "'"$ECR_URL:${{ steps.generate_tag.outputs.build_tag }}"'",
+              "event_type": "trigger-webapp-build",
+              "client_payload": {
+                "ecr_url": "'"$ECR_URL"'",
+                "image_tag": "'"${{ steps.generate_tag.outputs.build_tag }}"'",
                 "aws_region": "'"${{ github.event.inputs.AWS_REGION }}"'",
                 "target_repository": "cyberlab-cley-security/3-deploy-webapp-demo"
               }
