@@ -16,13 +16,13 @@ It is possible to use this code to quickly deploy a cloud native environment (K8
 
 ### High Level Diagram
 
-![hld](images/HLD.png)
+![hld](images/HLD2.png)
 
 
 
 ### Sequence Diagram
 
-![EKS_full_deployment](images/Diagram-terraform-eks.png)
+![EKS_full_deployment](images/Diagram-terraform-eks2.png)
 
 
 
@@ -39,7 +39,7 @@ It is possible to use this code to quickly deploy a cloud native environment (K8
 #### Create a fork of the repository
 
 1. Login with your github account
-2. Open https://github.com/cyberlab-cley-security/cloudlabs-aws-demo and click on Fork
+2. Open https://github.com/cyberlab-cley-security/1-iac-aws-demo and click on Fork
 
 
 
