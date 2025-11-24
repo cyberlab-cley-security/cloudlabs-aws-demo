@@ -410,7 +410,7 @@ jobs:
             --extra-vars target="ec2-bastion-public"
             --extra-vars MONGO_BACKUP_USER="${{ secrets.MONGO_BACKUP_USER }}"
             --extra-vars MONGO_BACKUP_PASS="${{ secrets.MONGO_BACKUP_PASS }}"
-            --extra-vars s3_bucket="${{ github.event.inputs.NAME_PREFIX }}-$ACTOR_PREFIX-s3-tfstate"
+            --extra-vars s3_bucket="${{ github.event.inputs.NAME_PREFIX }}-${{ env.ACTOR_PREFIX }}-s3-tfstate"
             --extra-vars AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
             --extra-vars AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
             --extra-vars AWS_DEFAULT_REGION=${{ github.event.inputs.AWS_REGION }}
