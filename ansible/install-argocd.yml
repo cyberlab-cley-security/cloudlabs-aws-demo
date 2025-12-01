@@ -181,7 +181,7 @@
 
     - name: Add GitHub repository to ArgoCD
       ansible.builtin.command: >
-        argocd repo add https://github.com/cyberlab-cley-security/deploy-webapp-demo.git 
+        argocd repo add https://github.com/cyberlab-cley-security/3-deploy-webapp-demo.git 
         --name deploy-webapp-demo
         --username "{{ github_username }}"
         --password "{{ github_token }}"
